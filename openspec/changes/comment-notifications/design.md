@@ -14,11 +14,11 @@ Comments broadcast in real time on a per-task private channel; `TaskShow` live-m
 
 ## Decisions
 
-### 1. Split live vs persisted to avoid a queue worker
-`QUEUE_CONNECTION=database`, so Laravel's notification **broadcast** channel would enqueue `BroadcastNotificationCreated` and not deliver without `queue:work`. To keep it worker-free (only `reverb:start` runs):
-- **Live**: a dedicated `ShouldBroadcastNow` event `CommentNotificationBroadcast` (synchronous broadcast, like the comment events).
-- **Persisted**: a Laravel notification `NewCommentNotification` via the **`database`** channel only (synchronous DB writes, no broadcast-event queueing).
-- *Alternative:* one `Notification` on `['broadcast','database']` — idiomatic but requires a running worker here. Rejected for setup simplicity; documented.
+### 1. Split live vs persisted (worker-agnostic + fan-out efficiency)
+`QUEUE_CONNECTION=database`. The design intentionally needs **no queue worker**: the live path is a `ShouldBroadcastNow` event (broadcasts inline, independent of the queue connection) and the database notification write is synchronous (the notification is not `ShouldQueue`). A worker may run, but isn't required. The split is also kept because recipients are **all users**:
+- **Live**: a dedicated `ShouldBroadcastNow` event `CommentNotificationBroadcast` on **one shared channel** — a single broadcast for everyone.
+- **Persisted**: a Laravel notification `NewCommentNotification` via the **`database`** channel only.
+- *Alternative:* one `Notification` on `['broadcast','database']` broadcasting per-user — idiomatic, but (a) its broadcast channel enqueues `BroadcastNotificationCreated` (would need a worker on the database queue), and (b) with the all-users audience it fans out one broadcast **per recipient**. Rejected; the shared-channel `ShouldBroadcastNow` event is worker-free and far cheaper. Revisit if recipients narrow to owner+participants.
 
 ### 2. One shared channel for the toast
 `CommentNotificationBroadcast` broadcasts on a single `PrivateChannel('comments.notifications')` (authorized for any authenticated user). One broadcast reaches all viewers — efficient for the "all users" choice instead of one broadcast per recipient. Payload: `{ actor_id, actor_name, task_id, task_name, comment_id, excerpt, created_at }`. Each client ignores events where `actor_id` is the current user. `broadcastAs`: `comment.notification`.
