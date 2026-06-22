@@ -203,6 +203,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useEcho } from '@laravel/echo-vue';
 import api from '../composables/useApi.js';
 import { useAuth } from '../composables/useAuth.js';
 
@@ -403,6 +404,23 @@ const deleteReply = async (c, r) => {
     console.error('Failed to delete reply:', err);
   }
 };
+
+// Real-time: merge broadcast comments/replies, de-duped by id.
+const upsertComment = (payload) => {
+  if (comments.value.some((c) => c.id === payload.id)) return;
+  comments.value.unshift(normalize(payload));
+};
+
+const upsertReply = (payload) => {
+  const parent = comments.value.find((c) => c.id === payload.parent_id);
+  if (!parent) return; // parent not in the current view; will appear on reload/expand
+  if (parent.replies.some((r) => r.id === payload.id)) return;
+  parent.replies.push(payload);
+  parent.replies_count = (parent.replies_count ?? 0) + 1;
+};
+
+useEcho(`tasks.${route.params.id}.comments`, '.comment.created', upsertComment, [], 'private');
+useEcho(`tasks.${route.params.id}.comments`, '.reply.created', upsertReply, [], 'private');
 
 onMounted(() => {
   fetchTask();

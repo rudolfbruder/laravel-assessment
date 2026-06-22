@@ -52,13 +52,12 @@ class TaskController extends Controller
 
     /**
      * Display the specified resource.
+     *
+     * Any authenticated user may view a task (e.g. to read/post comments);
+     * only the owner may update or delete it.
      */
     public function show(Request $request, Task $task): TaskResource
     {
-        if ($task->user_id !== $request->user()->id) {
-            abort(403);
-        }
-
         return TaskResource::make($task);
     }
 
