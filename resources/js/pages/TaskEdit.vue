@@ -114,6 +114,42 @@
         </div>
       </form>
     </div>
+
+    <!-- Activity timeline (event-sourced) -->
+    <div v-if="!fetching" class="mt-8 bg-white shadow-sm rounded-xl border border-gray-200 p-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Activity timeline</h2>
+
+      <div v-if="timelineLoading" class="text-sm text-gray-400">Loading activity…</div>
+      <p v-else-if="!timeline.length" class="text-sm text-gray-500">No recorded activity for this task.</p>
+
+      <table v-else class="min-w-full divide-y divide-gray-200 text-sm">
+        <thead>
+          <tr class="text-left text-gray-500">
+            <th class="py-2 pr-4 font-medium">Event</th>
+            <th class="py-2 pr-4 font-medium">Changes</th>
+            <th class="py-2 font-medium">When</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <tr v-for="entry in timeline" :key="entry.id">
+            <td class="py-2 pr-4 align-top">
+              <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700">
+                {{ entry.label }}
+              </span>
+            </td>
+            <td class="py-2 pr-4 align-top text-gray-700">
+              <span v-if="!entry.changes">—</span>
+              <ul v-else class="space-y-0.5">
+                <li v-for="(value, key) in entry.changes" :key="key">
+                  <span class="text-gray-500">{{ key }}:</span> {{ formatValue(value) }}
+                </li>
+              </ul>
+            </td>
+            <td class="py-2 align-top text-gray-500 whitespace-nowrap">{{ formatDate(entry.created_at) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
 
@@ -136,6 +172,34 @@ const form = reactive({
 const error = ref('');
 const loading = ref(false);
 const fetching = ref(true);
+const timeline = ref([]);
+const timelineLoading = ref(true);
+
+const formatValue = (value) => {
+  if (value === null || value === '') {
+    return '—';
+  }
+  return value;
+};
+
+const formatDate = (value) => {
+  if (!value) {
+    return '';
+  }
+  return new Date(value.replace(' ', 'T')).toLocaleString();
+};
+
+const fetchTimeline = async () => {
+  timelineLoading.value = true;
+  try {
+    const response = await api.get(`/tasks/${route.params.id}/events`);
+    timeline.value = response.data.data;
+  } catch (err) {
+    timeline.value = [];
+  } finally {
+    timelineLoading.value = false;
+  }
+};
 
 const fetchTask = async () => {
   fetching.value = true;
@@ -167,5 +231,8 @@ const handleUpdate = async () => {
   }
 };
 
-onMounted(fetchTask);
+onMounted(() => {
+  fetchTask();
+  fetchTimeline();
+});
 </script>

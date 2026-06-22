@@ -25,7 +25,7 @@ window.axios.interceptors.response.use(
 
 // Laravel Echo (Reverb) — private channels authenticated with the Sanctum
 // Bearer token via a custom authorizer hitting /api/broadcasting/auth.
-import { configureEcho } from '@laravel/echo-vue';
+import { configureEcho, echo } from '@laravel/echo-vue';
 
 configureEcho({
     broadcaster: 'reverb',
@@ -49,7 +49,25 @@ configureEcho({
                     { headers: { Authorization: `Bearer ${token}` } },
                 )
                 .then((response) => callback(false, response.data))
-                .catch((error) => callback(true, error));
+                .catch((error) => {
+                    console.error('[reverb] channel auth failed for', channel.name, error?.response?.status);
+                    callback(true, error);
+                });
         },
     }),
 });
+
+// Diagnostics: expose Echo and log Reverb connection state.
+try {
+    const echoInstance = echo();
+    window.Echo = echoInstance;
+    const connection = echoInstance.connector?.pusher?.connection;
+    if (connection) {
+        connection.bind('state_change', (s) => console.log('[reverb] state', s.previous, '->', s.current));
+        connection.bind('error', (e) => console.error('[reverb] connection error', e));
+        // Log every raw frame (subscription acks + broadcast events).
+        connection.bind('message', (m) => console.log('[reverb] frame', m));
+    }
+} catch (e) {
+    console.error('[reverb] failed to initialize Echo', e);
+}

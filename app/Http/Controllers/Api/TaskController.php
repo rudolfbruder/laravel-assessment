@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Domain\Tasks\Aggregates\TaskAggregateRoot;
+use App\Domain\Tasks\StoredEvents\TaskStoredEvent;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TaskEventResource;
 use App\Http\Resources\TaskResource;
 use App\Models\Task;
 use App\Repositories\TaskRepositoryInterface;
@@ -10,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Str;
 
 class TaskController extends Controller
 {
@@ -43,7 +47,13 @@ class TaskController extends Controller
             'due_date' => 'nullable|date',
         ]);
 
-        $task = $request->user()->tasks()->create($validated);
+        $uuid = (string) Str::uuid();
+
+        TaskAggregateRoot::retrieve($uuid)
+            ->createTask($request->user()->id, $validated)
+            ->persist();
+
+        $task = Task::query()->where('uuid', $uuid)->firstOrFail();
 
         return TaskResource::make($task)
             ->response()
@@ -78,9 +88,11 @@ class TaskController extends Controller
             'due_date' => 'nullable|date',
         ]);
 
-        $task->update($validated);
+        TaskAggregateRoot::retrieve($task->uuid)
+            ->updateTask($validated)
+            ->persist();
 
-        return TaskResource::make($task);
+        return TaskResource::make($task->refresh());
     }
 
     /**
@@ -92,8 +104,23 @@ class TaskController extends Controller
             abort(403);
         }
 
-        $task->delete();
+        TaskAggregateRoot::retrieve($task->uuid)
+            ->deleteTask()
+            ->persist();
 
         return response()->noContent();
+    }
+
+    /**
+     * Display the event-sourced activity timeline for the given task.
+     */
+    public function events(Request $request, Task $task): AnonymousResourceCollection
+    {
+        return TaskEventResource::collection(
+            TaskStoredEvent::query()
+                ->where('aggregate_uuid', $task->uuid)
+                ->orderBy('id')
+                ->get()
+        );
     }
 }

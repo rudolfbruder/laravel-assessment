@@ -22,6 +22,11 @@
         <span class="text-gray-700 font-medium truncate max-w-xs">{{ task.name }}</span>
       </div>
 
+      <!-- Live viewer note (sanity check) -->
+      <div v-if="viewerNote" class="mb-4 rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-sm text-blue-700">
+        👀 {{ viewerNote }}
+      </div>
+
       <!-- Header -->
       <div class="flex items-start justify-between gap-4 mb-6">
         <div>
@@ -423,8 +428,33 @@ const upsertReply = (payload) => {
 useEcho(`tasks.${route.params.id}.comments`, '.comment.created', upsertComment, [], 'private');
 useEcho(`tasks.${route.params.id}.comments`, '.reply.created', upsertReply, [], 'private');
 
+// Sanity check: log when another user opens this task.
+const viewerNote = ref('');
+useEcho(
+  `tasks.${route.params.id}.comments`,
+  '.task.viewed',
+  (payload) => {
+    console.log('[task.viewed]', payload);
+    if (payload.viewer_id !== user.value?.id) {
+      viewerNote.value = `${payload.viewer_name} is viewing this task`;
+      setTimeout(() => { viewerNote.value = ''; }, 5000);
+    }
+  },
+  [],
+  'private',
+);
+
+const announceView = async () => {
+  try {
+    await api.post(`/tasks/${route.params.id}/viewed`);
+  } catch (err) {
+    console.error('Failed to announce view:', err);
+  }
+};
+
 onMounted(() => {
   fetchTask();
   fetchComments();
+  announceView();
 });
 </script>
