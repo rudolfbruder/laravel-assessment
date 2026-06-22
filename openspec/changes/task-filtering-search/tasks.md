@@ -43,11 +43,11 @@
 
 ## 7. Spatie engine (after dependency approval)
 
-- [ ] 7.1 Get approval and add `spatie/laravel-query-builder` to composer
-- [ ] 7.2 Create `App\Repositories\SpatieTaskRepository` implementing the interface; map `search`/`status` params to spatie filters on `$user->tasks()`
-- [ ] 7.3 Parity test: same dataset + scenarios under `TASK_FILTER_ENGINE=classic` and `=spatie` return equivalent task IDs
+- [x] 7.1 Get approval and add `spatie/laravel-query-builder` to composer
+- [x] 7.2 Create `App\Repositories\SpatieTaskRepository` implementing the interface; map `search`/`status` params to spatie filters on `$user->tasks()`
+- [x] 7.3 Parity test: same dataset + scenarios under `TASK_FILTER_ENGINE=classic` and `=spatie` return equivalent task IDs
 
 ## 8. Finalize
 
 - [x] 8.1 Run `vendor/bin/pint --dirty --format agent`
-- [ ] 8.2 Run the task-filtering tests; then ask user to run full suite
+- [x] 8.2 Run the task-filtering tests; then ask user to run full suite
