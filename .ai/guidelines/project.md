@@ -41,6 +41,17 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 - Stick to existing directory structure; don't create new base folders without approval.
 - Do not change the application's dependencies without approval.
 
+### Domain-Driven Architecture
+
+- Business features live under `app/Domain/<Feature>/` (e.g. `app/Domain/Comments/`), namespace `App\Domain\<Feature>\...`. Everything connected to a feature lives in its domain folder.
+- Standard subfolders per domain: `Models/`, `Events/`, `Policies/`, `Http/{Controllers,Requests,Resources}/`, `Database/{Factories,Seeders}/`. Add others (e.g. `Data/`, `Actions/`) as needed.
+- Migrations stay in `database/migrations/` (timestamped infra), but factories/seeders live in the domain `Database/` folder.
+- Because domain classes sit outside Laravel's conventional auto-discovery paths, wire them explicitly:
+  - Models override `newFactory()` to return the domain factory (which sets `$model`).
+  - Register policies in `AppServiceProvider::boot()` via `Gate::policy(...)` (auto-discovery won't find `App\Domain\...\Policies`).
+  - Reference domain seeders explicitly from `DatabaseSeeder` with `$this->call(...)`.
+- The `Comments` domain is the reference implementation. `Tasks` will be migrated into `app/Domain/Tasks/` next.
+
 ## Frontend Bundling
 
 - If the user doesn't see a frontend change reflected in the UI, it could mean they need to run `npm run build`, `npm run dev`, or `composer run dev`. Ask them.

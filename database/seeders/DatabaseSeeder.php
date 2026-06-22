@@ -2,9 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\User;
+use App\Domain\Comments\Database\Seeders\CommentSeeder;
 use App\Models\Task;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -37,5 +38,8 @@ class DatabaseSeeder extends Seeder
         Task::factory()->count(12)->create(['user_id' => $candidate->id]);
         Task::factory()->count(8)->create(['user_id' => $alice->id]);
         Task::factory()->count(5)->create(['user_id' => $bob->id]);
+
+        // Seed comments and replies across all tasks
+        $this->call(CommentSeeder::class);
     }
 }

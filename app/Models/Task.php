@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use App\Domain\Comments\Models\Comment;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Task extends Model
 {
@@ -27,6 +29,26 @@ class Task extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * All comments on the task (root comments and replies).
+     *
+     * @return HasMany<Comment, $this>
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class);
+    }
+
+    /**
+     * Root comments on the task (excludes replies).
+     *
+     * @return HasMany<Comment, $this>
+     */
+    public function rootComments(): HasMany
+    {
+        return $this->comments()->whereNull('parent_id');
     }
 
     /**

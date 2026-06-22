@@ -86,7 +86,13 @@ Route::get('comments/{comment}/replies', [CommentController::class, 'replies']);
 
 Rollback: additive; drop migration + new files. No changes to existing task endpoints.
 
-## Open Questions
+## Resolved During Apply
 
-- Root comment ordering: newest-first vs oldest-first? Default oldest-first (chronological thread) for the page; revisit if the list grows. (Decide at apply time; not blocking.)
-- Page sizes (roots 15, replies preview 3, replies page 10) — reasonable defaults, tune later.
+- **Root ordering: newest-first.** Root comments are returned `latest()`; the frontend prepends a newly posted comment to the top. Replies remain oldest-first (chronological within a thread).
+- **Page sizes:** roots 15/page, reply preview 3, replies 10/page.
+- **Domain-driven architecture (new project convention).** All comment code lives under `app/Domain/Comments/` (`Models/`, `Events/`, `Policies/`, `Http/{Controllers,Requests,Resources}/`, `Database/{Factories,Seeders}/`). Migrations stay in `database/migrations/`. Explicit wiring required because these paths are outside Laravel auto-discovery:
+  - `Comment::newFactory()` returns the domain factory.
+  - `Gate::policy(Comment::class, CommentPolicy::class)` in `AppServiceProvider::boot()`.
+  - `DatabaseSeeder` calls `CommentSeeder` explicitly.
+  Recorded in `.ai/guidelines/project.md`. `Tasks` domain to be migrated next.
+- **Seeder added** (`CommentSeeder`): seeds 2–4 root comments + 0–3 replies per existing task across all users, wired into `DatabaseSeeder` so `migrate:fresh --seed` yields data. Validated on SQLite (25 tasks → 71 roots, 116 replies). Real DB runs in Docker (MySQL); not reachable from the dev shell.

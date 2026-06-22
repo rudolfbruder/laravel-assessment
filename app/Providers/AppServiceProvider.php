@@ -2,9 +2,12 @@
 
 namespace App\Providers;
 
+use App\Domain\Comments\Models\Comment;
+use App\Domain\Comments\Policies\CommentPolicy;
 use App\Repositories\ClassicTaskRepository;
 use App\Repositories\SpatieTaskRepository;
 use App\Repositories\TaskRepositoryInterface;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -27,6 +30,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Policy lives in the Comments domain, outside the auto-discovered App\Policies path.
+        Gate::policy(Comment::class, CommentPolicy::class);
     }
 }
