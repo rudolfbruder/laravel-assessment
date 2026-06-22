@@ -141,7 +141,7 @@ const fetchTask = async () => {
   fetching.value = true;
   try {
     const response = await api.get(`/tasks/${route.params.id}`);
-    task.value = response.data;
+    task.value = response.data.data;
     form.name = task.value.name;
     form.description = task.value.description ?? '';
     form.priority = task.value.priority;

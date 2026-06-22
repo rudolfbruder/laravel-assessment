@@ -16,9 +16,36 @@
       </div>
     </div>
 
+    <!-- Filters -->
+    <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div class="relative flex-1">
+        <input
+          v-model="search"
+          type="search"
+          placeholder="Search tasks by name…"
+          class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        />
+      </div>
+      <select
+        v-model="status"
+        class="block w-full sm:w-48 px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+      >
+        <option value="all">All statuses</option>
+        <option value="todo">To Do</option>
+        <option value="in_progress">In Progress</option>
+        <option value="done">Done</option>
+      </select>
+    </div>
+
     <!-- Loading state -->
     <div v-if="loading" class="mt-10 flex justify-center">
       <div class="text-gray-400 text-sm">Loading tasks…</div>
+    </div>
+
+    <!-- No results for active filters -->
+    <div v-else-if="tasks.length === 0 && hasActiveFilters" class="mt-10 text-center py-16 bg-white rounded-xl border-2 border-dashed border-gray-200">
+      <p class="text-gray-500 font-medium">No tasks match your filters.</p>
+      <p class="text-gray-400 text-sm mt-1">Try a different search or status.</p>
     </div>
 
     <!-- Empty state -->
@@ -98,7 +125,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '../composables/useApi.js';
 
@@ -106,17 +133,35 @@ const router = useRouter();
 const tasks = ref([]);
 const loading = ref(true);
 
+const search = ref('');
+const status = ref('all');
+
+const hasActiveFilters = computed(() => search.value.trim() !== '' || status.value !== 'all');
+
 const fetchTasks = async () => {
   loading.value = true;
   try {
-    const response = await api.get('/tasks');
-    tasks.value = response.data;
+    const response = await api.get('/tasks', {
+      params: {
+        search: search.value.trim() || undefined,
+        status: status.value !== 'all' ? status.value : undefined,
+      },
+    });
+    // API wraps resource collections in a `data` envelope.
+    tasks.value = response.data.data;
   } catch (err) {
     console.error('Failed to fetch tasks:', err);
   } finally {
     loading.value = false;
   }
 };
+
+let searchTimeout;
+watch(search, () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(fetchTasks, 300);
+});
+watch(status, fetchTasks);
 
 const deleteTask = async (id) => {
   if (!confirm('Delete this task? This cannot be undone.')) return;

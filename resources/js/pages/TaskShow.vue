@@ -108,7 +108,7 @@ const fetchTask = async () => {
   loading.value = true;
   try {
     const response = await api.get(`/tasks/${route.params.id}`);
-    task.value = response.data;
+    task.value = response.data.data;
   } catch (err) {
     console.error('Failed to fetch task:', err);
     task.value = null;
