@@ -11,3 +11,8 @@ Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
 Broadcast::channel('tasks.{taskId}.comments', function ($user) {
     return $user !== null;
 });
+
+// Shared channel carrying app-wide new-comment notifications.
+Broadcast::channel('comments.notifications', function ($user) {
+    return $user !== null;
+});

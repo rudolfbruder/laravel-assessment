@@ -37,11 +37,16 @@ configureEcho({
     enabledTransports: ['ws', 'wss'],
     authorizer: (channel) => ({
         authorize: (socketId, callback) => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                callback(true, new Error('Unauthenticated'));
+                return;
+            }
             window.axios
                 .post(
                     '/api/broadcasting/auth',
                     { socket_id: socketId, channel_name: channel.name },
-                    { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } },
+                    { headers: { Authorization: `Bearer ${token}` } },
                 )
                 .then((response) => callback(false, response.data))
                 .catch((error) => callback(true, error));

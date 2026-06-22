@@ -201,9 +201,9 @@
 </template>
 
 <script setup>
+import { useEcho } from '@laravel/echo-vue';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useEcho } from '@laravel/echo-vue';
 import api from '../composables/useApi.js';
 import { useAuth } from '../composables/useAuth.js';
 
@@ -407,6 +407,7 @@ const deleteReply = async (c, r) => {
 
 // Real-time: merge broadcast comments/replies, de-duped by id.
 const upsertComment = (payload) => {
+    console.log('upsertComment', payload);
   if (comments.value.some((c) => c.id === payload.id)) return;
   comments.value.unshift(normalize(payload));
 };

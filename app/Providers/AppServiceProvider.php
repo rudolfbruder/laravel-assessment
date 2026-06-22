@@ -2,11 +2,14 @@
 
 namespace App\Providers;
 
+use App\Domain\Comments\Events\CommentCreated;
+use App\Domain\Comments\Listeners\NotifyUsersOfComment;
 use App\Domain\Comments\Models\Comment;
 use App\Domain\Comments\Policies\CommentPolicy;
 use App\Repositories\ClassicTaskRepository;
 use App\Repositories\SpatieTaskRepository;
 use App\Repositories\TaskRepositoryInterface;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -32,5 +35,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // Policy lives in the Comments domain, outside the auto-discovered App\Policies path.
         Gate::policy(Comment::class, CommentPolicy::class);
+
+        // Domain listener isn't auto-discovered (lives outside App\Listeners).
+        Event::listen(CommentCreated::class, NotifyUsersOfComment::class);
     }
 }
